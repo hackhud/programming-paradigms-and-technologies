@@ -3,7 +3,7 @@
 ### Розділ 4. Варіант 2, задача 1
 
 ### Умова задачі
-*Виявити породжуючі та непороджуючі нетермінали. Забезпечити еквівалентне перетворення граматики з метою елімінації непороджуючих нетерміналів.*
+*Виявити породжуючі та непороджуючі нетермінали. Виконати вилучення непороджуючих символів як перетворення, еквівалентне за мовою відносно стартового символу.*
 
 ### Код програми
 ```haskell
@@ -43,12 +43,14 @@ generatingNonterminals g = fixPoint step []
 nonGeneratingNonterminals :: Grammar -> [String]
 nonGeneratingNonterminals g = allNonterminals g \\ generatingNonterminals g
 
-eliminateNonGenerating :: Grammar -> Grammar
-eliminateNonGenerating g =
+eliminateNonGenerating :: String -> Grammar -> Grammar
+eliminateNonGenerating start g =
     let gen = generatingNonterminals g
-    in [(lhs, rhs) | (lhs, rhs) <- g,
-        lhs `elem` gen,
-        all (isGeneratingSymbol gen) rhs]
+    in if start `notElem` gen
+        then []
+        else [(lhs, rhs) | (lhs, rhs) <- g,
+            lhs `elem` gen,
+            all (isGeneratingSymbol gen) rhs]
 
 showArray :: Show a => [a] -> String
 showArray arr = "[" ++ intercalate ", " (map show arr) ++ "]"
@@ -60,12 +62,13 @@ showRule (lhs, rhs) = lhs ++ " -> " ++ unwords (map show rhs)
 showGrammar :: Grammar -> String
 showGrammar g = "[" ++ intercalate "; " (map showRule g) ++ "]"
 
-runTest :: Int -> Grammar -> [String] -> [String] -> Grammar -> IO ()
-runTest n grammar expectedGen expectedNonGen expectedClean = do
+runTest :: Int -> String -> Grammar -> [String] -> [String] -> Grammar -> IO ()
+runTest n start grammar expectedGen expectedNonGen expectedClean = do
     let gen = generatingNonterminals grammar
     let nonGen = nonGeneratingNonterminals grammar
-    let clean = eliminateNonGenerating grammar
+    let clean = eliminateNonGenerating start grammar
     putStrLn $ "Test " ++ show n ++ ":"
+    putStrLn $ "  Start symbol:            " ++ start
     putStrLn $ "  Generating expected:     " ++ showArray expectedGen
     putStrLn $ "  Generating result:       " ++ showArray gen
     putStrLn $ "  Non-generating expected: " ++ showArray expectedNonGen
@@ -112,19 +115,19 @@ grammar4 =
 
 main :: IO ()
 main = do
-    runTest 1 grammar1
+    runTest 1 "S" grammar1
         ["A", "B", "C", "S"] ["D"]
         [("S", [NT "A", NT "B"]), ("A", [T "a"]), ("B", [NT "C"]), ("C", [T "c"])]
 
-    runTest 2 grammar2
+    runTest 2 "S" grammar2
         ["A", "B", "C", "S"] ["X", "Y"]
         [("S", [NT "A"]), ("A", [NT "B"]), ("B", [NT "C"]), ("C", [T "c"])]
 
-    runTest 3 grammar3
+    runTest 3 "S" grammar3
         ["A"] ["B", "C", "S"]
-        [("A", [T "a"])]
+        []
 
-    runTest 4 grammar4
+    runTest 4 "S" grammar4
         ["A", "B", "C", "D", "S"] []
         grammar4
 ```
@@ -133,7 +136,7 @@ main = do
 
 Породжуючим є нетермінал, з якого можна вивести рядок, що складається лише з терміналів. Алгоритм починає з порожньої множини породжуючих нетерміналів. На кожній ітерації до неї додаються ліві частини правил, у правій частині яких усі символи є терміналами або вже відомими породжуючими нетерміналами.
 
-Після досягнення нерухомої точки непороджуючі нетермінали визначаються як різниця між усіма нетерміналами граматики та породжуючими. Функція `eliminateNonGenerating` залишає тільки правила з породжуючою лівою частиною та породжуючими символами у правій частині.
+Після досягнення нерухомої точки непороджуючі нетермінали визначаються як різниця між усіма нетерміналами граматики та породжуючими. Функція `eliminateNonGenerating` додатково отримує стартовий символ. Якщо він непороджуючий, мова граматики порожня і результатом є порожній набір правил. Інакше залишаються тільки правила з породжуючою лівою частиною та породжуючими символами у правій частині.
 
 ### Обґрунтування завершуваності
 
@@ -145,14 +148,19 @@ main = do
 2. Переглядаються всі правила граматики.
 3. Ліва частина правила додається до множини, якщо вся права частина вже може породити термінальний рядок.
 4. Перегляд повторюється до відсутності змін.
-5. Правила, пов'язані з непороджуючими нетерміналами, вилучаються.
+5. Якщо стартовий символ непороджуючий, повертається порожня граматика; інакше правила, пов'язані з непороджуючими нетерміналами, вилучаються.
 
-### Умови тестів
+### Тестові сценарії
 
-1. Граматика з окремим саморекурсивним нетерміналом перевіряє його вилучення.
-2. Взаємно рекурсивна непороджуюча компонента перевіряє вилучення циклу без термінального завершення.
-3. Непороджуюча частина, від якої залежить стартовий символ, перевіряє каскадне визначення.
-4. Граматика з порожнім правилом перевіряє, що `ε`-правило вважається породжуючим.
+| Вхідні дані | Очікуваний результат | Що перевіряє тест |
+|---|---|---|
+| `grammar1`, старт `S` | Вилучено лише `D -> D` | Окремий саморекурсивний непороджуючий нетермінал |
+| `grammar2`, старт `S` | Вилучено цикл `X <-> Y` | Взаємно рекурсивна компонента без термінального завершення |
+| `grammar3`, старт `S` | Порожній набір правил | Стартовий символ непороджуючий, тому мова порожня; правило `A -> a` не залишається окремо |
+| `grammar4`, старт `S` | Граматика не змінюється | `ε`-правило та повністю породжуюча граматика |
 
-### Результати тестів
+### Ілюстрація результатів тестування
+
+Зображення є ілюстрацією одного запуску. Актуальна перевірка виконується командою `runghc main.hs`.
+
 ![Tests](tests.jpg)

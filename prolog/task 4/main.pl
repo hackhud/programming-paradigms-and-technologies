@@ -50,13 +50,17 @@ non_generating_nonterminals(TestID, NonGenerating) :-
     generating_nonterminals(TestID, Generating),
     list_difference(All, Generating, NonGenerating).
 
-cleaned_rules(TestID, Cleaned) :-
+cleaned_rules(TestID, Start, Cleaned) :-
     generating_nonterminals(TestID, Generating),
-    findall(rule(LHS, RHS), (
-        rule(TestID, LHS, RHS),
-        member(LHS, Generating),
-        rhs_generating(RHS, Generating)
-    ), Cleaned).
+    ( member(Start, Generating) ->
+        findall(rule(LHS, RHS), (
+            rule(TestID, LHS, RHS),
+            member(LHS, Generating),
+            rhs_generating(RHS, Generating)
+        ), Cleaned)
+    ;
+        Cleaned = []
+    ).
 
 % test 1
 rule(test1, 'S', [nt('A'), nt('B')]).
@@ -120,11 +124,12 @@ write_rule_list([H|T]) :-
     show_rule(H), write('; '),
     write_rule_list(T).
 
-run_test(N, TestID, ExpectedGen, ExpectedNonGen, ExpectedClean) :-
+run_test(N, TestID, Start, ExpectedGen, ExpectedNonGen, ExpectedClean) :-
     generating_nonterminals(TestID, Gen),
     non_generating_nonterminals(TestID, NonGen),
-    cleaned_rules(TestID, Clean),
+    cleaned_rules(TestID, Start, Clean),
     format("Test ~w:~n", [N]),
+    format("  Start symbol:            ~w~n", [Start]),
     write("  Generating expected:     "), show_array(ExpectedGen), nl,
     write("  Generating result:       "), show_array(Gen), nl,
     write("  Non-generating expected: "), show_array(ExpectedNonGen), nl,
@@ -134,18 +139,18 @@ run_test(N, TestID, ExpectedGen, ExpectedNonGen, ExpectedClean) :-
     ( Gen = ExpectedGen, NonGen = ExpectedNonGen, Clean = ExpectedClean -> write("  PASS\n\n") ; write("  FAIL\n\n") ).
 
 main :-
-    run_test(1, test1,
+    run_test(1, test1, 'S',
         ['A', 'B', 'C', 'S'], ['D'],
         [rule('S', [nt('A'), nt('B')]), rule('A', [t(a)]), rule('B', [nt('C')]), rule('C', [t(c)])]),
 
-    run_test(2, test2,
+    run_test(2, test2, 'S',
         ['A', 'B', 'C', 'S'], ['X', 'Y'],
         [rule('S', [nt('A')]), rule('A', [nt('B')]), rule('B', [nt('C')]), rule('C', [t(c)])]),
 
-    run_test(3, test3,
+    run_test(3, test3, 'S',
         ['A'], ['B', 'C', 'S'],
-        [rule('A', [t(a)])]),
+        []),
 
-    run_test(4, test4,
+    run_test(4, test4, 'S',
         ['A', 'B', 'C', 'D', 'S'], [],
         [rule('S', [nt('A'), nt('B')]), rule('A', []), rule('B', [t(b)]), rule('C', [nt('D')]), rule('D', [t(e)])]).

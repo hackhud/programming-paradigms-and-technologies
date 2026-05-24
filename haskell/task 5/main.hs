@@ -50,10 +50,10 @@ compositionDo x = do
 compositionBind :: Double -> Maybe Double
 compositionBind x = u3 x >>= u2 >>= u1
 
--- v(x, n) = sqrt(x - 1/n), n є другим аргументом
+-- v(y, z) = sqrt(y - 1/z)
 v :: Double -> Double -> Maybe Double
-v _ n | abs n < eps = Nothing
-v x n = safeSqrt (x - 1 / n)
+v _ z | abs z < eps = Nothing
+v y z = safeSqrt (y - 1 / z)
 
 -- v(u1(x), u2(x)) з do-нотацією
 composition2Do :: Double -> Maybe Double
@@ -85,10 +85,10 @@ runUnaryTest number name fn x expected = do
     putStrLn $ if approxMaybe result expected then "  PASS\n" else "  FAIL\n"
 
 runBinaryTest :: Int -> String -> (Double -> Double -> Maybe Double) -> Double -> Double -> Maybe Double -> IO ()
-runBinaryTest number name fn x n expected = do
-    let result = fn x n
+runBinaryTest number name fn y z expected = do
+    let result = fn y z
     putStrLn $ "Test " ++ show number ++ " — " ++ name ++ ":"
-    putStrLn $ "  Input:    x = " ++ show x ++ ", n = " ++ show n
+    putStrLn $ "  Input:    y = " ++ show y ++ ", z = " ++ show z
     putStrLn $ "  Expected: " ++ formatMaybe expected
     putStrLn $ "  Result:   " ++ formatMaybe result
     putStrLn $ if approxMaybe result expected then "  PASS\n" else "  FAIL\n"
@@ -111,6 +111,10 @@ main = do
     runUnaryTest 2 "u2 = f8" u2 10.0 (Just 0.9951474972055879)
     runUnaryTest 3 "u3 = f9" u3 25.0 (Just 4.988876515698588)
     runPairTest 4 "u1(u2(u3(x)))" compositionDo compositionBind 3000000.0 (Just 5.792719455650831)
-    runBinaryTest 5 "v(x,n) = f9" v 10.0 9.0 (Just 3.1446603773522015)
-    runBinaryTest 6 "v(x,n), invalid n" v 5.0 0.0 Nothing
+    runBinaryTest 5 "v(y,z)" v 10.0 9.0 (Just 3.1446603773522015)
+    runBinaryTest 6 "v(y,z), zero denominator" v 5.0 0.0 Nothing
     runPairTest 7 "v(u1(x), u2(x))" composition2Do composition2Bind 3.3 (Just 1.2773365079353625)
+    runUnaryTest 8 "u3, negative radicand" u3 0.0 Nothing
+    runUnaryTest 9 "u2, invalid logarithm argument" u2 0.0 Nothing
+    runUnaryTest 10 "u1, zero logarithm denominator" u1 (sqrt 10.0) Nothing
+    runPairTest 11 "u1(u2(u3(x))), invalid intermediate value" compositionDo compositionBind 1.0 Nothing

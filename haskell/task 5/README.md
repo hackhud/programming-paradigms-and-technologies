@@ -5,6 +5,16 @@
 ### Умова задачі
 *Запрограмувати Maybe-функції для f7, f8, f9; реалізувати суперпозиції u1(u2(u3(x))) та v(u1(x), u2(x)) з do-нотацією і без неї.*
 
+Використані функції при `n = 9`:
+
+- `f7(x) = 1 / lg(x² - n)`;
+- `f8(x) = lg(x - 1/n)`;
+- `f9(x) = sqrt(x - 1/n)`;
+- `u1 = f7`, `u2 = f8`, `u3 = f9`;
+- допоміжна двоаргументна функція `v(y, z) = sqrt(y - 1/z)`.
+
+Другий аргумент `v` позначено як `z`, оскільки в суперпозиції `v(u1(x), u2(x))` до нього передається результат `u2(x)`, а не стала `n`.
+
 ### Код програми
 ```haskell
 -- part 5. Variant (7, 8, 9), n = 9
@@ -59,10 +69,10 @@ compositionDo x = do
 compositionBind :: Double -> Maybe Double
 compositionBind x = u3 x >>= u2 >>= u1
 
--- v(x, n) = sqrt(x - 1/n), n є другим аргументом
+-- v(y, z) = sqrt(y - 1/z)
 v :: Double -> Double -> Maybe Double
-v _ n | abs n < eps = Nothing
-v x n = safeSqrt (x - 1 / n)
+v _ z | abs z < eps = Nothing
+v y z = safeSqrt (y - 1 / z)
 
 -- v(u1(x), u2(x)) з do-нотацією
 composition2Do :: Double -> Maybe Double
@@ -94,10 +104,10 @@ runUnaryTest number name fn x expected = do
     putStrLn $ if approxMaybe result expected then "  PASS\n" else "  FAIL\n"
 
 runBinaryTest :: Int -> String -> (Double -> Double -> Maybe Double) -> Double -> Double -> Maybe Double -> IO ()
-runBinaryTest number name fn x n expected = do
-    let result = fn x n
+runBinaryTest number name fn y z expected = do
+    let result = fn y z
     putStrLn $ "Test " ++ show number ++ " — " ++ name ++ ":"
-    putStrLn $ "  Input:    x = " ++ show x ++ ", n = " ++ show n
+    putStrLn $ "  Input:    y = " ++ show y ++ ", z = " ++ show z
     putStrLn $ "  Expected: " ++ formatMaybe expected
     putStrLn $ "  Result:   " ++ formatMaybe result
     putStrLn $ if approxMaybe result expected then "  PASS\n" else "  FAIL\n"
@@ -120,16 +130,20 @@ main = do
     runUnaryTest 2 "u2 = f8" u2 10.0 (Just 0.9951474972055879)
     runUnaryTest 3 "u3 = f9" u3 25.0 (Just 4.988876515698588)
     runPairTest 4 "u1(u2(u3(x)))" compositionDo compositionBind 3000000.0 (Just 5.792719455650831)
-    runBinaryTest 5 "v(x,n) = f9" v 10.0 9.0 (Just 3.1446603773522015)
-    runBinaryTest 6 "v(x,n), invalid n" v 5.0 0.0 Nothing
+    runBinaryTest 5 "v(y,z)" v 10.0 9.0 (Just 3.1446603773522015)
+    runBinaryTest 6 "v(y,z), zero denominator" v 5.0 0.0 Nothing
     runPairTest 7 "v(u1(x), u2(x))" composition2Do composition2Bind 3.3 (Just 1.2773365079353625)
+    runUnaryTest 8 "u3, negative radicand" u3 0.0 Nothing
+    runUnaryTest 9 "u2, invalid logarithm argument" u2 0.0 Nothing
+    runUnaryTest 10 "u1, zero logarithm denominator" u1 (sqrt 10.0) Nothing
+    runPairTest 11 "u1(u2(u3(x))), invalid intermediate value" compositionDo compositionBind 1.0 Nothing
 ```
 
 ### Опис алгоритму
 
 Для кожної математичної операції, яка має обмежену область визначення, створена безпечна функція з результатом типу `Maybe Double`. `safeLog10` повертає `Nothing` для недодатного аргументу, `safeSqrt` — для від'ємного, а `safeDiv` — для майже нульового знаменника.
 
-Функції `u1`, `u2`, `u3` і `v` поєднують ці перевірки з відповідними формулами. Суперпозиції реалізовані двома рівносильними способами: через `do`-нотацію та оператор зв'язування `>>=`. Якщо будь-який проміжний крок повертає `Nothing`, наступні обчислення не виконуються і вся композиція також повертає `Nothing`.
+Функції `u1`, `u2`, `u3` реалізують відповідно `f7`, `f8` і `f9`. Допоміжна функція `v(y,z) = sqrt(y - 1/z)` використовує другий результат суперпозиції як знаменник. Суперпозиції реалізовані двома рівносильними способами: через `do`-нотацію та оператор зв'язування `>>=`. Якщо будь-який проміжний крок повертає `Nothing`, наступні обчислення не виконуються і вся композиція також повертає `Nothing`.
 
 ### Обґрунтування завершуваності
 
@@ -143,13 +157,22 @@ main = do
 4. При порушенні умови повертається `Nothing`, який автоматично поширюється до кінцевого результату.
 5. Результати реалізацій через `do` та `>>=` порівнюються з допустимою похибкою.
 
-### Умови тестів
+### Тестові сценарії
 
-1. Окремі тести `u1`, `u2` та `u3` перевіряють правильність трьох базових Maybe-функцій.
-2. Тест `u1(u2(u3(x)))` порівнює рівносильність реалізацій через `do` і `>>=`.
-3. Тест `v(x,n)` перевіряє звичайний коректний виклик.
-4. Випадок `n = 0` перевіряє повернення `Nothing` замість ділення на нуль.
-5. Тест `v(u1(x),u2(x))` перевіряє композицію двох незалежних Maybe-результатів.
+| Вхідні дані | Очікуваний результат | Що перевіряє тест |
+|---|---|---|
+| `u1 4`, `u2 10`, `u3 25` | Відповідні значення `Just ...` | Коректні області визначення базових функцій |
+| `u1(u2(u3(3000000)))` | `Just 5.792719...` для `do` і `>>=` | Рівносильність двох реалізацій суперпозиції |
+| `v(10, 9)` | `Just 3.144660...` | Коректний виклик `v(y,z)` |
+| `v(5, 0)` | `Nothing` | Нуль у знаменнику |
+| `v(u1(3.3), u2(3.3))` | `Just 1.277336...` для `do` і `>>=` | Суперпозиція двох незалежних Maybe-результатів |
+| `u3 0` | `Nothing` | Від'ємне значення під коренем |
+| `u2 0` | `Nothing` | Недопустимий аргумент логарифма |
+| `u1 (sqrt 10)` | `Nothing` | Нульове значення логарифма у знаменнику |
+| `u1(u2(u3(1)))` | `Nothing` | Поширення `Nothing` з проміжного кроку суперпозиції |
 
-### Результати тестів
+### Ілюстрація результатів тестування
+
+Зображення є ілюстрацією одного запуску. Актуальна перевірка виконується командою `runghc main.hs`.
+
 ![Tests](tests.jpg)

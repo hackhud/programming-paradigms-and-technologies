@@ -13,10 +13,12 @@ animal('нанду',      bird,   land,  omnivore,  large,  flightless).
 animal('носуха',     mammal, land,  omnivore,  medium, long_nose).
 animal('нектарниця', bird,   air,   nectar,    small,  bright).
 animal('нічниця',    mammal, air,   insectivore, small, bat).
+animal('нільський_крокодил', reptile, mixed, carnivore, large, scales).
 
 % Узагальнюючі поняття і класифікатори.
 classifier(class, mammal, 'ссавець').
 classifier(class, bird, 'птах').
+classifier(class, reptile, 'плазун').
 classifier(habitat, land, 'суходіл').
 classifier(habitat, water, 'вода').
 classifier(habitat, mixed, 'суходіл і вода').
@@ -29,13 +31,22 @@ classifier(food, insectivore, 'живиться комахами').
 classifier(size, small, 'мала').
 classifier(size, medium, 'середня').
 classifier(size, large, 'велика').
+classifier(feature, horn, 'ріг').
+classifier(feature, rodent, 'гризун').
+classifier(feature, flipper, 'ласти').
+classifier(feature, fur_predator, 'хутровий хижак').
+classifier(feature, flightless, 'не літає').
+classifier(feature, long_nose, 'довгий ніс').
+classifier(feature, bright, 'яскраве забарвлення').
+classifier(feature, bat, 'кажан').
+classifier(feature, scales, 'луската шкіра').
 
 % Питання з трьома або більше альтернативами.
-question(class, 'Клас тварини', [mammal, bird]).
+question(class, 'Клас тварини', [mammal, bird, reptile]).
 question(habitat, 'Середовище існування', [land, water, mixed, air]).
 question(food, 'Тип живлення', [herbivore, carnivore, omnivore, nectar, insectivore]).
 question(size, 'Розмір', [small, medium, large]).
-question(feature, 'Особлива ознака', [horn, rodent, flipper, fur_predator, flightless, long_nose, bright, bat]).
+question(feature, 'Особлива ознака', [horn, rodent, flipper, fur_predator, flightless, long_nose, bright, bat, scales]).
 
 matches(Required, Answers) :-
     member(Required, Answers).
@@ -52,9 +63,16 @@ identify(Answers, Result) :-
 
 ask_value(Key, Value) :-
     question(Key, Text, Options),
-    format('~w ~w:~n', [Text, Options]),
+    format('~w:~n', [Text]),
+    show_options(Key, Options),
     read(Value),
     member(Value, Options).
+
+show_options(_, []).
+show_options(Key, [Value|Rest]) :-
+    classifier(Key, Value, Label),
+    format('  ~w - ~w~n', [Value, Label]),
+    show_options(Key, Rest).
 
 start :-
     ask_value(class, Class),
@@ -102,4 +120,16 @@ main :-
         ['нектарниця']),
     run_test(6,
         [class(mammal), habitat(air), food(insectivore), size(small), feature(bat)],
-        ['нічниця']).
+        ['нічниця']),
+    run_test(7,
+        [class(mammal), habitat(mixed), food(carnivore), size(small), feature(fur_predator)],
+        ['норка']),
+    run_test(8,
+        [class(mammal), habitat(land), food(omnivore), size(medium), feature(long_nose)],
+        ['носуха']),
+    run_test(9,
+        [class(reptile), habitat(mixed), food(carnivore), size(large), feature(scales)],
+        ['нільський_крокодил']),
+    run_test(10,
+        [class(bird), habitat(water), food(herbivore), size(large), feature(horn)],
+        []).

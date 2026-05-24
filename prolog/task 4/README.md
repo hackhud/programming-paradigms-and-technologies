@@ -3,7 +3,7 @@
 ### Розділ 4. Варіант 2, задача 1
 
 ### Умова задачі
-*Виявити породжуючі та непороджуючі нетермінали. Забезпечити еквівалентне перетворення граматики з метою елімінації непороджуючих нетерміналів.*
+*Виявити породжуючі та непороджуючі нетермінали. Виконати вилучення непороджуючих символів як перетворення, еквівалентне за мовою відносно стартового символу.*
 
 ### Код програми
 ```prolog
@@ -59,13 +59,17 @@ non_generating_nonterminals(TestID, NonGenerating) :-
     generating_nonterminals(TestID, Generating),
     list_difference(All, Generating, NonGenerating).
 
-cleaned_rules(TestID, Cleaned) :-
+cleaned_rules(TestID, Start, Cleaned) :-
     generating_nonterminals(TestID, Generating),
-    findall(rule(LHS, RHS), (
-        rule(TestID, LHS, RHS),
-        member(LHS, Generating),
-        rhs_generating(RHS, Generating)
-    ), Cleaned).
+    ( member(Start, Generating) ->
+        findall(rule(LHS, RHS), (
+            rule(TestID, LHS, RHS),
+            member(LHS, Generating),
+            rhs_generating(RHS, Generating)
+        ), Cleaned)
+    ;
+        Cleaned = []
+    ).
 
 % test 1
 rule(test1, 'S', [nt('A'), nt('B')]).
@@ -129,11 +133,12 @@ write_rule_list([H|T]) :-
     show_rule(H), write('; '),
     write_rule_list(T).
 
-run_test(N, TestID, ExpectedGen, ExpectedNonGen, ExpectedClean) :-
+run_test(N, TestID, Start, ExpectedGen, ExpectedNonGen, ExpectedClean) :-
     generating_nonterminals(TestID, Gen),
     non_generating_nonterminals(TestID, NonGen),
-    cleaned_rules(TestID, Clean),
+    cleaned_rules(TestID, Start, Clean),
     format("Test ~w:~n", [N]),
+    format("  Start symbol:            ~w~n", [Start]),
     write("  Generating expected:     "), show_array(ExpectedGen), nl,
     write("  Generating result:       "), show_array(Gen), nl,
     write("  Non-generating expected: "), show_array(ExpectedNonGen), nl,
@@ -143,19 +148,19 @@ run_test(N, TestID, ExpectedGen, ExpectedNonGen, ExpectedClean) :-
     ( Gen = ExpectedGen, NonGen = ExpectedNonGen, Clean = ExpectedClean -> write("  PASS\n\n") ; write("  FAIL\n\n") ).
 
 main :-
-    run_test(1, test1,
+    run_test(1, test1, 'S',
         ['A', 'B', 'C', 'S'], ['D'],
         [rule('S', [nt('A'), nt('B')]), rule('A', [t(a)]), rule('B', [nt('C')]), rule('C', [t(c)])]),
 
-    run_test(2, test2,
+    run_test(2, test2, 'S',
         ['A', 'B', 'C', 'S'], ['X', 'Y'],
         [rule('S', [nt('A')]), rule('A', [nt('B')]), rule('B', [nt('C')]), rule('C', [t(c)])]),
 
-    run_test(3, test3,
+    run_test(3, test3, 'S',
         ['A'], ['B', 'C', 'S'],
-        [rule('A', [t(a)])]),
+        []),
 
-    run_test(4, test4,
+    run_test(4, test4, 'S',
         ['A', 'B', 'C', 'D', 'S'], [],
         [rule('S', [nt('A'), nt('B')]), rule('A', []), rule('B', [t(b)]), rule('C', [nt('D')]), rule('D', [t(e)])]).
 ```
@@ -164,7 +169,7 @@ main :-
 
 Предикат `generating_nonterminals/2` обчислює породжуючі нетермінали методом нерухомої точки. На початку множина порожня. Предикат `step_generating/3` додає ліву частину кожного правила, права частина якого складається лише з терміналів або вже відомих породжуючих нетерміналів.
 
-Після стабілізації множини предикат `non_generating_nonterminals/2` знаходить різницю між усіма нетерміналами та породжуючими. `cleaned_rules/2` залишає лише правила з породжуючою лівою та правою частинами.
+Після стабілізації множини предикат `non_generating_nonterminals/2` знаходить різницю між усіма нетерміналами та породжуючими. `cleaned_rules/3` також отримує стартовий символ. Якщо він непороджуючий, мова граматики порожня і предикат повертає порожній список правил. Інакше залишаються лише правила з породжуючою лівою та правою частинами.
 
 ### Обґрунтування завершуваності
 
@@ -176,14 +181,19 @@ main :-
 2. Для кожного правила перевіряється предикат `rhs_generating/2`.
 3. Породжуючі ліві частини додаються до поточної множини та сортуються.
 4. Ітерації повторюються до отримання однакових `Current` і `Next`.
-5. На основі кінцевої множини формуються список непороджуючих символів і очищена граматика.
+5. Якщо стартовий символ непороджуючий, очищена граматика є порожньою; інакше вилучаються правила з непороджуючими символами.
 
-### Умови тестів
+### Тестові сценарії
 
-1. Саморекурсивний нетермінал без термінального правила перевіряє базове вилучення.
-2. Взаємно рекурсивна непороджуюча компонента перевіряє цикл без термінального завершення.
-3. Залежність стартового символу від непороджуючого циклу перевіряє каскадне вилучення правил.
-4. Порожнє правило та повністю породжуюча граматика перевіряють `ε`-виведення.
+| Вхідні дані | Очікуваний результат | Що перевіряє тест |
+|---|---|---|
+| `test1`, старт `S` | Вилучено лише `D -> D` | Окремий саморекурсивний непороджуючий нетермінал |
+| `test2`, старт `S` | Вилучено цикл `X <-> Y` | Взаємно рекурсивна компонента без термінального завершення |
+| `test3`, старт `S` | Порожній список правил | Стартовий символ непороджуючий, тому мова порожня; правило `A -> a` не залишається окремо |
+| `test4`, старт `S` | Граматика не змінюється | `ε`-правило та повністю породжуюча граматика |
 
-### Результати тестів
+### Ілюстрація результатів тестування
+
+Зображення є ілюстрацією одного запуску. Актуальна перевірка виконується командою `swipl -q -s main.pl -g main -t halt`.
+
 ![Tests](tests.jpg)

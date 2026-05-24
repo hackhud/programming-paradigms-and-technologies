@@ -34,12 +34,14 @@ generatingNonterminals g = fixPoint step []
 nonGeneratingNonterminals :: Grammar -> [String]
 nonGeneratingNonterminals g = allNonterminals g \\ generatingNonterminals g
 
-eliminateNonGenerating :: Grammar -> Grammar
-eliminateNonGenerating g =
+eliminateNonGenerating :: String -> Grammar -> Grammar
+eliminateNonGenerating start g =
     let gen = generatingNonterminals g
-    in [(lhs, rhs) | (lhs, rhs) <- g,
-        lhs `elem` gen,
-        all (isGeneratingSymbol gen) rhs]
+    in if start `notElem` gen
+        then []
+        else [(lhs, rhs) | (lhs, rhs) <- g,
+            lhs `elem` gen,
+            all (isGeneratingSymbol gen) rhs]
 
 showArray :: Show a => [a] -> String
 showArray arr = "[" ++ intercalate ", " (map show arr) ++ "]"
@@ -51,12 +53,13 @@ showRule (lhs, rhs) = lhs ++ " -> " ++ unwords (map show rhs)
 showGrammar :: Grammar -> String
 showGrammar g = "[" ++ intercalate "; " (map showRule g) ++ "]"
 
-runTest :: Int -> Grammar -> [String] -> [String] -> Grammar -> IO ()
-runTest n grammar expectedGen expectedNonGen expectedClean = do
+runTest :: Int -> String -> Grammar -> [String] -> [String] -> Grammar -> IO ()
+runTest n start grammar expectedGen expectedNonGen expectedClean = do
     let gen = generatingNonterminals grammar
     let nonGen = nonGeneratingNonterminals grammar
-    let clean = eliminateNonGenerating grammar
+    let clean = eliminateNonGenerating start grammar
     putStrLn $ "Test " ++ show n ++ ":"
+    putStrLn $ "  Start symbol:            " ++ start
     putStrLn $ "  Generating expected:     " ++ showArray expectedGen
     putStrLn $ "  Generating result:       " ++ showArray gen
     putStrLn $ "  Non-generating expected: " ++ showArray expectedNonGen
@@ -103,18 +106,18 @@ grammar4 =
 
 main :: IO ()
 main = do
-    runTest 1 grammar1
+    runTest 1 "S" grammar1
         ["A", "B", "C", "S"] ["D"]
         [("S", [NT "A", NT "B"]), ("A", [T "a"]), ("B", [NT "C"]), ("C", [T "c"])]
 
-    runTest 2 grammar2
+    runTest 2 "S" grammar2
         ["A", "B", "C", "S"] ["X", "Y"]
         [("S", [NT "A"]), ("A", [NT "B"]), ("B", [NT "C"]), ("C", [T "c"])]
 
-    runTest 3 grammar3
+    runTest 3 "S" grammar3
         ["A"] ["B", "C", "S"]
-        [("A", [T "a"])]
+        []
 
-    runTest 4 grammar4
+    runTest 4 "S" grammar4
         ["A", "B", "C", "D", "S"] []
         grammar4
