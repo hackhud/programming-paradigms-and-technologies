@@ -1,33 +1,31 @@
 # Команди запуску
 
-Команди розраховані на запуск з кореня репозиторію.
+Потрібні інструменти:
 
-## Haskell
+- `runghc` для Haskell;
+- `swipl` для Prolog.
+
+## Усі задачі
+
+Linux/macOS:
+
 ```bash
-( cd "haskell/task 1.1" && runghc main.hs )
-( cd "haskell/task 1.2" && runghc main.hs )
-( cd "haskell/task 2" && runghc main.hs )
-( cd "haskell/task 3" && runghc main.hs )
-( cd "haskell/task 4" && runghc main.hs )
-( cd "haskell/task 5" && runghc main.hs )
+./run_all.sh
 ```
 
-## Prolog
-```bash
-( cd "prolog/task 1.1" && swipl -s main.pl -g main -t halt )
-( cd "prolog/task 1.2" && swipl -s main.pl -g main -t halt )
-( cd "prolog/task 2" && swipl -s main.pl -g main -t halt )
-( cd "prolog/task 3" && swipl -s main.pl -g main -t halt )
-( cd "prolog/task 4" && swipl -s main.pl -g main -t halt )
-( cd "prolog/task 6" && swipl -s main.pl -g main -t halt )
+Windows PowerShell:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\run_all.ps1
 ```
 
-## Завантаження на GitHub
+## Окрема задача
+
+Команди виконуються з кореня репозиторію:
+
 ```bash
-git init
-git add .
-git commit -m "Add PTP laboratory tasks"
-git branch -M main
-git remote add origin https://github.com/USERNAME/REPOSITORY.git
-git push -u origin main
+cd "haskell/task 1.1" && runghc main.hs
+cd "prolog/task 1.1" && swipl -q -s main.pl -g main -t halt
 ```
+
+Повний перелік команд наведено у кореневому [`README.md`](README.md).
