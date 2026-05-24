@@ -17,6 +17,18 @@
 | Haskell | task 5 | 5 | (7, 8, 9), n = 9 | Maybe-функції та їх суперпозиції |
 | Prolog | task 6 | 6 | літера Н | Проста експертна система для визначення тварини |
 
+## Звіти
+
+| Розділ | Haskell | Prolog |
+|---|---|---|
+| 1, задача 1 | [Звіт Haskell](haskell/task%201.1/README.md) | [Звіт Prolog](prolog/task%201.1/README.md) |
+| 1, задача 2 | [Звіт Haskell](haskell/task%201.2/README.md) | [Звіт Prolog](prolog/task%201.2/README.md) |
+| 2 | [Звіт Haskell](haskell/task%202/README.md) | [Звіт Prolog](prolog/task%202/README.md) |
+| 3 | [Звіт Haskell](haskell/task%203/README.md) | [Звіт Prolog](prolog/task%203/README.md) |
+| 4 | [Звіт Haskell](haskell/task%204/README.md) | [Звіт Prolog](prolog/task%204/README.md) |
+| 5 | [Звіт Haskell](haskell/task%205/README.md) | — |
+| 6 | — | [Звіт Prolog](prolog/task%206/README.md) |
+
 ## Як запускати
 
 ### Haskell
